@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+.venv/
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Data (Volumes will handle these if needed, but usually we ignore local state)
+# backend/data/chroma_db/

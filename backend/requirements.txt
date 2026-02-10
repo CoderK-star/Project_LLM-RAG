@@ -1,0 +1,11 @@
+langchain
+langchain-community
+langchain-openai
+langchain-ollama
+chromadb
+python-dotenv
+pypdf
+fastapi
+uvicorn
+pandas
+rank_bm25
