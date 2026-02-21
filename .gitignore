@@ -124,6 +124,17 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Node.js
+node_modules/
+package-lock.json
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Docker
+*.log
+
 # OS generated files
 .DS_Store
 .DS_Store?

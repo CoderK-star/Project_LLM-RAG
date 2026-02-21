@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const chatLog = document.getElementById('chatLog');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const sourceList = document.getElementById('sourceList');
     const newChatBtn = document.getElementById('newChat');
-    const clearBtn = document.getElementById('clearChat');
     const exportBtn = document.getElementById('exportData');
     
     const goHomeBtn = document.getElementById('goHome');
@@ -18,8 +18,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const ttsEnabledSelect = document.getElementById('ttsEnabled');
     const voiceInputBtn = document.getElementById('voiceInputBtn');
     const toggleThemeBtn = document.getElementById('toggleTheme');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const footerStatus = document.getElementById('footerStatus');
 
-    // Theme Logic
+    // History Dashboard UI elements
+    const historyDashboard = document.getElementById('historyDashboard');
+    const openHistoryDashboardBtn = document.getElementById('openHistoryDashboard');
+    const closeDashboardBtn = document.getElementById('closeDashboard');
+    const sessionGrid = document.getElementById('sessionGrid');
+    const emptyState = document.getElementById('emptyState');
+    const historySearchInput = document.getElementById('historySearch');
+    const deleteSessionBtn = document.getElementById('deleteSession');
+
+    const historyUI = document.getElementById('historyUI');
+    const historyDetails = document.getElementById('historyDetails');
+    const closeHistoryBtn = document.getElementById('closeHistory');
+    const resumeChatBtn = document.getElementById('resumeChat');
+
+    // --- State ---
+    let currentChatSession = [];
+    let activeSessionId = null;
+    let lastUserQuery = null;
+    let currentLocation = null;
+    let currentImageBase64 = null;
+    let isStreaming = false;
+
+    // --- Sanitization helper ---
+    function sanitize(html) {
+        if (window.DOMPurify) {
+            return DOMPurify.sanitize(html, { ADD_TAGS: ['img'], ADD_ATTR: ['src', 'style', 'alt'] });
+        }
+        return html;
+    }
+
+    // --- Theme Logic ---
     const updateThemeIcon = (theme) => {
         const sunIcon = toggleThemeBtn.querySelector('.theme-sun');
         const moonIcon = toggleThemeBtn.querySelector('.theme-moon');
@@ -38,44 +70,104 @@ document.addEventListener('DOMContentLoaded', () => {
         updateThemeIcon(savedTheme);
     };
 
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    }
+
     if (toggleThemeBtn) {
-        toggleThemeBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
+        toggleThemeBtn.addEventListener('click', toggleTheme);
         initTheme();
     }
 
-    // History Dashboard UI elements
-    const historyDashboard = document.getElementById('historyDashboard');
-    const openHistoryDashboardBtn = document.getElementById('openHistoryDashboard');
-    const closeDashboardBtn = document.getElementById('closeDashboard');
-    const sessionGrid = document.getElementById('sessionGrid');
-    const emptyState = document.getElementById('emptyState');
-    const historySearchInput = document.getElementById('historySearch');
-    const deleteSessionBtn = document.getElementById('deleteSession');
+    // --- Mobile Navigation ---
+    const mobileHome = document.getElementById('mobileHome');
+    const mobileNewChat = document.getElementById('mobileNewChat');
+    const mobileHistory = document.getElementById('mobileHistory');
+    const mobileSettings = document.getElementById('mobileSettings');
+    const mobileTheme = document.getElementById('mobileTheme');
 
-    const historyUI = document.getElementById('historyUI');
-    const historyDetails = document.getElementById('historyDetails');
-    const closeHistoryBtn = document.getElementById('closeHistory');
-    const resumeChatBtn = document.getElementById('resumeChat');
+    if (mobileHome) mobileHome.addEventListener('click', () => showSection('mainUI'));
+    if (mobileNewChat) mobileNewChat.addEventListener('click', () => newChatBtn.click());
+    if (mobileHistory) mobileHistory.addEventListener('click', () => openHistoryDashboardBtn.click());
+    if (mobileSettings) mobileSettings.addEventListener('click', () => openSettingsBtn.click());
+    if (mobileTheme) mobileTheme.addEventListener('click', toggleTheme);
 
-    let currentChatSession = [];
-    let activeSessionId = null;
-    let lastUserQuery = null;  // Store for regeneration
+    // --- Location Feature ---
+    const locationBtn = document.getElementById('locationBtn');
+    const locationModal = document.getElementById('locationModal');
+    const allowLocationBtn = document.getElementById('allowLocation');
+    const denyLocationBtn = document.getElementById('denyLocation');
+    
+    locationBtn.addEventListener('click', () => {
+        if (currentLocation) {
+            if (confirm("位置情報の使用を停止しますか？")) {
+                currentLocation = null;
+                locationBtn.classList.remove('active');
+            }
+        } else {
+            locationModal.classList.remove('hidden');
+        }
+    });
 
-    // Marked.js の設定
+    denyLocationBtn.addEventListener('click', () => locationModal.classList.add('hidden'));
+
+    allowLocationBtn.addEventListener('click', () => {
+        locationModal.classList.add('hidden');
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                currentLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+                locationBtn.classList.add('active');
+            }, (error) => {
+                alert("位置情報を取得できませんでした: " + error.message);
+            });
+        } else {
+            alert("このブラウザは位置情報をサポートしていません。");
+        }
+    });
+    
+    // --- Image Feature ---
+    const imageBtn = document.getElementById('imageBtn');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const previewImg = document.getElementById('previewImg');
+    const removeImageBtn = document.getElementById('removeImage');
+
+    imageBtn.addEventListener('click', () => imageInput.click());
+
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageBase64 = e.target.result;
+                previewImg.src = currentImageBase64;
+                imagePreviewContainer.classList.remove('hidden');
+                imageBtn.classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeImageBtn.addEventListener('click', () => {
+        currentImageBase64 = null;
+        imageInput.value = "";
+        imagePreviewContainer.classList.add('hidden');
+        imageBtn.classList.remove('active');
+    });
+
+    // --- Marked.js Configuration ---
     if (window.marked) {
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
+        marked.setOptions({ breaks: true, gfm: true });
     }
 
-    // 音声解析 (Speech Recognition)
+    // --- Speech Recognition ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     if (SpeechRecognition) {
@@ -107,11 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 音声合成 (TTS)
+    // --- TTS ---
     function speakText(text) {
         if (ttsEnabledSelect.value === 'false') return;
-        
-        // Remove markdown and tags for cleaner speech
         const cleanText = text.replace(/[#*`_~\[\]]/g, '').slice(0, 300); 
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = 'ja-JP';
@@ -119,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.speechSynthesis.speak(utterance);
     }
 
-    // パネルのリサイズ機能
+    // --- Panel Resize ---
     const resizer = document.getElementById('resizer');
     const leftSide = document.querySelector('.left-side');
     let isResizing = false;
@@ -129,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
         isResizing = true;
         startX = e.clientX;
         startWidth = parseInt(document.defaultView.getComputedStyle(leftSide).width, 10);
-        
         document.body.style.cursor = 'col-resize';
         resizer.classList.add('dragging');
         document.body.style.userSelect = 'none';
@@ -137,10 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
-
         const deltaX = e.clientX - startX;
         const newWidth = startWidth + deltaX;
-        
         if (newWidth > 180 && newWidth < 500) {
             leftSide.style.width = `${newWidth}px`;
         }
@@ -154,53 +241,42 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.userSelect = '';
     });
 
-    // UI切替
+    // --- UI Section Switching ---
     function showSection(sectionId) {
-        // 全てのメインコンテナを隠す
         mainUI.classList.add('hidden');
         settingsUI.classList.add('hidden');
         historyDashboard.classList.add('hidden');
         historyUI.classList.add('hidden');
 
-        // 指定されたセクションを表示
         const target = document.getElementById(sectionId);
         if (target) target.classList.remove('hidden');
 
-        // サイドバーのactive状態を更新（オプション）
         document.querySelectorAll('.setting-btn').forEach(btn => btn.classList.remove('active'));
     }
 
-    goHomeBtn.addEventListener('click', () => {
-        showSection('mainUI');
-    });
+    goHomeBtn.addEventListener('click', () => showSection('mainUI'));
+    openSettingsBtn.addEventListener('click', () => showSection('settingsUI'));
+    closeSettingsBtn.addEventListener('click', () => showSection('mainUI'));
 
-    openSettingsBtn.addEventListener('click', () => {
-        showSection('settingsUI');
-    });
-
-    closeSettingsBtn.addEventListener('click', () => {
-        showSection('mainUI');
-    });
-
-    // 温度のスライダー調整
+    // --- Temperature Slider ---
     tempRange.addEventListener('input', () => {
         tempValue.textContent = tempRange.value;
     });
 
-    // 新規チャット
+    // --- New Chat ---
     newChatBtn.addEventListener('click', () => {
         if (chatLog.children.length === 0) return;
         if (confirm('現在の対話を終了して、新規チャットを開始しますか？')) {
             saveSessionToHistory();
             chatLog.innerHTML = '';
-            sourceList.innerHTML = '(Waiting for query...)';
+            sourceList.innerHTML = '(クエリ待機中...)';
             currentChatSession = [];
             activeSessionId = null;
             addMessage("新しいセッションを開始しました。ごみの分別や出し方について質問してください。", "system");
         }
     });
 
-    // データエクスポート
+    // --- Export ---
     exportBtn.addEventListener('click', () => {
         if (currentChatSession.length === 0) {
             alert('エクスポートするデータがありません。');
@@ -215,20 +291,19 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     });
 
-    // 設定保存
+    // --- Settings ---
     saveSettingsBtn.addEventListener('click', () => {
         const type = document.getElementById('modelType').value;
         const name = document.getElementById('modelNameInput').value.trim();
         const address = document.getElementById('apiAddress').value.trim();
+        const apiBase = document.getElementById('apiBaseUrl').value.trim();
         
-        // バリデーション
-        if (!name) {
-            alert('モデル名を入力してください。');
-            return;
-        }
-        if (!address) {
-            alert('APIアドレスを入力してください。');
-            return;
+        if (!name) { alert('モデル名を入力してください。'); return; }
+
+        if (apiBase) {
+            localStorage.setItem('api_base_url', apiBase.replace(/\/$/, ""));
+        } else {
+            localStorage.removeItem('api_base_url');
         }
 
         const config = {
@@ -239,27 +314,31 @@ document.addEventListener('DOMContentLoaded', () => {
             tts: ttsEnabledSelect.value
         };
         localStorage.setItem('rag_config', JSON.stringify(config));
-        
-        // 画面のステータス表示を即座に更新
         loadAndDisplaySettings();
 
-        saveSettingsBtn.textContent = 'SYSTEM UPDATED';
+        saveSettingsBtn.textContent = '設定を更新しました';
         saveSettingsBtn.style.background = '#22c55e';
         setTimeout(() => {
-            saveSettingsBtn.textContent = 'APPLY SYSTEM CHANGES';
+            saveSettingsBtn.textContent = '設定を適用';
             saveSettingsBtn.style.background = '';
         }, 2000);
     });
 
-    // 設定の読み込みと表示更新
-    function loadAndDisplaySettings() {
-        const savedConfig = localStorage.getItem('rag_config');
+    // --- Load settings from backend /config + localStorage ---
+    async function loadAndDisplaySettings() {
         const statusModelName = document.getElementById('statusModelName');
         const statusEngineMode = document.getElementById('statusEngineMode');
 
+        // バックエンドURL欄を復元
+        const apiBaseInput = document.getElementById('apiBaseUrl');
+        if (apiBaseInput) {
+            apiBaseInput.value = localStorage.getItem('api_base_url') || '';
+        }
+
+        // まずlocalStorageのオーバーライドをチェック
+        const savedConfig = localStorage.getItem('rag_config');
         if (savedConfig) {
             const c = JSON.parse(savedConfig);
-            // フォームへの反映
             document.getElementById('modelType').value = c.type || 'ollama';
             document.getElementById('modelNameInput').value = c.name || '';
             document.getElementById('apiAddress').value = c.address || '';
@@ -267,26 +346,86 @@ document.addEventListener('DOMContentLoaded', () => {
             tempValue.textContent = tempRange.value;
             if (c.tts) ttsEnabledSelect.value = c.tts;
 
-            // ステータス表示の更新
-            if (statusModelName) statusModelName.textContent = c.name || 'Not Configured';
+            if (statusModelName) statusModelName.textContent = c.name || '未設定';
             if (statusEngineMode) {
-                const modeLabel = c.type === 'openai' ? 'OpenAI API' : 'Local (Ollama)';
-                statusEngineMode.textContent = `${modeLabel}`;
+                const modeLabel = c.type === 'openai' ? 'OpenAI API' : 'ローカル (Ollama)';
+                statusEngineMode.textContent = modeLabel;
             }
-        } else {
-             // デフォルト設定
-             if (statusModelName) statusModelName.textContent = 'Not Configured';
-             if (statusEngineMode) statusEngineMode.textContent = 'Unknown';
+            return;
+        }
+
+        // localStorageに設定がなければバックエンドから取得
+        try {
+            const apiBase = getApiBase();
+            const response = await fetch(`${apiBase}/config`);
+            if (response.ok) {
+                const serverConfig = await response.json();
+                document.getElementById('modelType').value = serverConfig.model_type || 'ollama';
+                document.getElementById('modelNameInput').value = serverConfig.model_name || '';
+                // APIキーは返さないのでaddressは空
+                document.getElementById('apiAddress').value = serverConfig.ollama_base_url || '';
+
+                if (statusModelName) statusModelName.textContent = serverConfig.model_name || '未設定';
+                if (statusEngineMode) {
+                    const modeLabel = serverConfig.model_type === 'openai' ? 'OpenAI API' : 'ローカル (Ollama)';
+                    statusEngineMode.textContent = modeLabel;
+                }
+
+                if (connectionStatus) connectionStatus.textContent = '接続: 確立済み // システム準備完了';
+                if (footerStatus) footerStatus.textContent = `モデル: ${serverConfig.model_name}`;
+            }
+        } catch (e) {
+            console.warn('Could not fetch server config:', e);
+            if (statusModelName) statusModelName.textContent = '未設定';
+            if (statusEngineMode) statusEngineMode.textContent = '不明';
+            if (connectionStatus) connectionStatus.textContent = '接続: サーバーに接続できません';
         }
     }
 
-    // 初期ロード実行
+    function getApiBase() {
+        const saved = localStorage.getItem('api_base_url');
+        if (saved) return saved.replace(/\/$/, "");
+        // __API_BASE__ is replaced at build time for cloud deployment;
+        // when served from the same origin (local dev), it stays empty.
+        const buildTime = "__API_BASE__";
+        if (buildTime && !buildTime.startsWith("__")) return buildTime.replace(/\/$/, "");
+        return "";
+    }
+
+    // 初期ロード
     loadAndDisplaySettings();
 
-    function addMessage(text, role, isRestoration = false, showRegenerate = false) {
+    // --- Health check ---
+    async function checkHealth() {
+        try {
+            const apiBase = getApiBase();
+            const res = await fetch(`${apiBase}/health`);
+            if (res.ok) {
+                const data = await res.json();
+                if (connectionStatus) {
+                    connectionStatus.textContent = data.status === 'ready' 
+                        ? '接続: 確立済み // システム準備完了' 
+                        : '接続: 確立済み // 初期化中...';
+                }
+            }
+        } catch {
+            if (connectionStatus) connectionStatus.textContent = '接続: サーバーに接続できません';
+        }
+    }
+    checkHealth();
+
+    // --- Message rendering ---
+
+    function renderMarkdown(text) {
+        if (window.marked) {
+            return sanitize(marked.parse(text));
+        }
+        return sanitize(text.replace(/\n/g, '<br>'));
+    }
+
+    function addMessage(text, role, isRestoration = false) {
         if (!isRestoration) {
             currentChatSession.push({ role, text, timestamp: new Date().toLocaleTimeString() });
-            // Debounced save
             if (currentChatSession.length > 1) saveSessionToHistory();
         }
 
@@ -296,67 +435,92 @@ document.addEventListener('DOMContentLoaded', () => {
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const label = role === 'user' ? 'ユーザ' : 'GCA system';
         
-        // Markdown rendering using Marked.js
-        let formattedContent = text;
-        if (window.marked && role !== 'user') {
-            formattedContent = marked.parse(text);
+        let formattedContent;
+        if (role !== 'user') {
+            formattedContent = renderMarkdown(text);
         } else {
-            // User messages or fallback
-            formattedContent = text.replace(/\n/g, '<br>');
-        }
-
-        // Check if response is too short (likely incomplete)
-        const isShortResponse = role === 'system' && text.length < 100 && !text.includes('ERROR') && !text.includes('起動');
-        
-        let regenerateBtn = '';
-        if ((showRegenerate || isShortResponse) && role === 'system' && !text.includes('起動') && !text.includes('新しいセッション')) {
-            regenerateBtn = `
-                <div class="response-actions">
-                    ${isShortResponse ? '<span class="short-response-warning">⚠ 回答が短い可能性があります</span>' : ''}
-                    <button class="restore-btn">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
-                            <path d="M9 14L4 9l5-5"/>
-                            <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
-                        </svg>
-                        Restore
-                    </button>
-                </div>
-            `;
+            formattedContent = sanitize(text.replace(/\n/g, '<br>'));
         }
 
         msg.innerHTML = `
-            <div class="msg-info">${label} // ${timestamp}</div>
+            <div class="msg-info">${sanitize(label)} // ${timestamp}</div>
             <div class="content">${formattedContent}</div>
-            ${regenerateBtn}
         `;
-        
-        // Add restore handler
-        const restoreBtn = msg.querySelector('.restore-btn');
-        if (restoreBtn) {
-            restoreBtn.addEventListener('click', () => {
-                if (currentChatSession.length > 0) {
-                    msg.remove(); // Remove system msg
-                    currentChatSession.pop(); // Remove system msg from history
-                    
-                    // Remove preceding user message
-                    const userMsg = chatLog.lastElementChild;
-                    if (userMsg && userMsg.classList.contains('user')) {
-                        userMsg.remove();
-                        currentChatSession.pop(); // Remove user msg from history
-                        if (lastUserQuery) {
-                            userInput.value = lastUserQuery;
-                        }
-                    }
-                }
-            });
-        }
         
         chatLog.appendChild(msg);
         chatLog.scrollTop = chatLog.scrollHeight;
 
-        if (role === 'system') {
+        if (role === 'system' && !isRestoration) {
             speakText(text);
         }
+    }
+
+    function createStreamingMessage() {
+        const msg = document.createElement('div');
+        msg.className = 'msg system';
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        msg.innerHTML = `
+            <div class="msg-info">GCA system // ${timestamp}</div>
+            <div class="content"><span class="loading-dots">回答を生成中...</span></div>
+        `;
+        
+        chatLog.appendChild(msg);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        return msg;
+    }
+
+    function updateStreamingMessage(msgElement, fullText) {
+        const contentDiv = msgElement.querySelector('.content');
+        contentDiv.innerHTML = renderMarkdown(fullText);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function finalizeStreamingMessage(msgElement, fullText) {
+        const contentDiv = msgElement.querySelector('.content');
+        contentDiv.innerHTML = renderMarkdown(fullText);
+
+        // 復元ボタンを追加
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'response-actions';
+        
+        const isShort = fullText.length < 100;
+        actionsDiv.innerHTML = `
+            ${isShort ? '<span class="short-response-warning">⚠ 回答が短い可能性があります</span>' : ''}
+            <button class="restore-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+                    <path d="M9 14L4 9l5-5"/>
+                    <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
+                </svg>
+                元に戻す
+            </button>
+        `;
+        
+        msgElement.appendChild(actionsDiv);
+        
+        const restoreBtn = actionsDiv.querySelector('.restore-btn');
+        restoreBtn.addEventListener('click', () => {
+            msgElement.remove();
+            currentChatSession.pop(); // system msg
+
+            const userMsg = chatLog.lastElementChild;
+            if (userMsg && userMsg.classList.contains('user')) {
+                userMsg.remove();
+                currentChatSession.pop(); // user msg
+                if (lastUserQuery) {
+                    userInput.value = lastUserQuery;
+                    userInput.style.height = 'auto';
+                    userInput.style.height = (userInput.scrollHeight) + 'px';
+                }
+            }
+        });
+
+        // セッション保存
+        currentChatSession.push({ role: 'system', text: fullText, timestamp: new Date().toLocaleTimeString() });
+        if (currentChatSession.length > 1) saveSessionToHistory();
+        
+        chatLog.scrollTop = chatLog.scrollHeight;
+        speakText(fullText);
     }
 
     function updateSources(sources) {
@@ -367,114 +531,64 @@ document.addEventListener('DOMContentLoaded', () => {
         sourceList.innerHTML = sources.map((s, i) => {
             const filename = typeof s === 'string' ? s : s.filename;
             const snippet = typeof s === 'object' && s.snippet ? s.snippet : '';
-            const page = typeof s === 'object' && s.page !== null ? ` (p.${s.page + 1})` : '';
+            const page = typeof s === 'object' && s.page !== null && s.page !== undefined ? ` (p.${s.page + 1})` : '';
             return `
             <div class="source-card">
                 <div class="source-card-title">
-                    [${i+1}] ${filename}${page}
+                    [${i+1}] ${sanitize(filename)}${page}
                 </div>
-                ${snippet ? `<div class="source-card-snippet">${snippet}</div>` : ''}
+                ${snippet ? `<div class="source-card-snippet">${sanitize(snippet)}</div>` : ''}
             </div>
         `}).join('');
     }
 
-    // Separate function to add message with regenerate button (for query responses)
-    function addMessageWithRegenerate(text, query) {
-        currentChatSession.push({ role: 'system', text, timestamp: new Date().toLocaleTimeString() });
-        if (currentChatSession.length > 1) saveSessionToHistory();
+    // --- Send / Streaming Handler ---
 
-        const msg = document.createElement('div');
-        msg.className = 'msg system';
-        
-        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
-        let formattedContent = text;
-        if (window.marked) {
-            formattedContent = marked.parse(text);
-        }
-
-        const isShort = text.length < 100;
-
-        msg.innerHTML = `
-            <div class="msg-info">GCA system // ${timestamp}</div>
-            <div class="content">${formattedContent}</div>
-            <div class="response-actions">
-                ${isShort ? '<span class="short-response-warning">⚠ 回答が短い可能性があります</span>' : ''}
-                <button class="restore-btn">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
-                        <path d="M9 14L4 9l5-5"/>
-                        <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>
-                    </svg>
-                    Restore to last checkpoint
-                </button>
-            </div>
-        `;
-        
-        const restoreBtn = msg.querySelector('.restore-btn');
-        restoreBtn.addEventListener('click', () => {
-            msg.remove();
-            currentChatSession.pop(); // Remove system msg
-
-            // User message is previous sibling of the system message
-            // Since we just removed 'msg', we need to check the *now* last element?
-            // No, getting 'previousElementSibling' before removing, or...
-            // Actually, if we just removed msg, then chatLog.lastElementChild IS the user message (assuming it was the last pair)
-            
-            const userMsg = chatLog.lastElementChild;
-            if (userMsg && userMsg.classList.contains('user')) {
-                userMsg.remove();
-                currentChatSession.pop(); // Remove user msg
-                userInput.value = query;
-                userInput.style.height = 'auto';
-                userInput.style.height = (userInput.scrollHeight) + 'px';
-            }
-        });
-        
-        chatLog.appendChild(msg);
-        chatLog.scrollTop = chatLog.scrollHeight;
-        speakText(text);
-    }
-
-    async function handleSend(queryText = null, isRegeneration = false) {
+    async function handleSend(queryText = null) {
         const text = queryText || userInput.value.trim();
-        if (!text) return; // バリデーション: 空送信を防止
+        if (!text && !currentImageBase64) return;
+        if (isStreaming) return;
 
-        // Store for potential regeneration
         lastUserQuery = text;
+        
+        const requestLocation = currentLocation;
+        const requestImage = currentImageBase64;
 
-        // UIの状態を「処理中」にロック
+        // UIロック
+        isStreaming = true;
         userInput.disabled = true;
         sendBtn.disabled = true;
         voiceInputBtn.disabled = true;
+        imageBtn.disabled = true;
+        locationBtn.disabled = true;
 
-        if (!isRegeneration) {
-            addMessage(text, 'user');
-            userInput.value = '';
-            userInput.style.height = '40px';
-        }
+        // ユーザーメッセージ表示
+        const displayContent = requestImage 
+            ? `${text}\n<br><img src="${requestImage}" style="max-width: 200px; border-radius: 4px; margin-top: 5px;">` 
+            : text;
+        addMessage(displayContent, 'user');
+        userInput.value = '';
+        userInput.style.height = '40px';
+
+        // 画像UIリセット
+        currentImageBase64 = null;
+        imageInput.value = "";
+        imagePreviewContainer.classList.add('hidden');
+        imageBtn.classList.remove('active');
         
-        // Thinking state UI
-        const thinkingId = 'thinking-' + Date.now();
-        const thinkingMsg = document.createElement('div');
-        thinkingMsg.className = 'msg system';
-        thinkingMsg.id = thinkingId;
-        thinkingMsg.innerHTML = `
-            <div class="msg-info"> // Processing...</div>
-            <div class="loading-dots">${isRegeneration ? '再生成中...' : 'ANALYZING KNOWLEDGE BASE...'}</div>
-        `;
-        chatLog.appendChild(thinkingMsg);
-        chatLog.scrollTop = chatLog.scrollHeight;
+        // ストリーミングメッセージ作成
+        const streamMsg = createStreamingMessage();
 
         try {
             const config = JSON.parse(localStorage.getItem('rag_config') || '{}');
-            // 同一オリジンの場合は相対パスを使用（CORS問題を回避）
             const apiBase = config.address ? config.address.replace(/\/$/, "") : "";
             
-            // タイムアウト処理 (120秒 - ローカルLLM対応)
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000);
+            // 会話履歴を送信（最新10件、システムメッセージを除いた軽量版）
+            const history = currentChatSession.slice(-10).map(m => ({
+                role: m.role,
+                text: m.text.slice(0, 500) // テキストは500文字に制限
+            }));
 
-            // リクエストボディに設定を含める
             const requestBody = {
                 prompt: text,
                 config: {
@@ -482,10 +596,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: config.name,
                     address: config.address,
                     temp: config.temp
-                }
+                },
+                location: requestLocation,
+                image: requestImage,
+                history: history
             };
 
-            const response = await fetch(`${apiBase}/query`, {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 180000); // 3分タイムアウト
+
+            const response = await fetch(`${apiBase}/query/stream`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
@@ -493,24 +613,68 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             clearTimeout(timeoutId);
-            chatLog.removeChild(thinkingMsg);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.detail || `HTTP Error ${response.status}`);
             }
 
-            const data = await response.json();
-            if (!data.answer) throw new Error("不正なレスポンス形式です。");
+            // SSEストリーム読み取り
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullAnswer = "";
+            let buffer = "";
 
-            // Always show regenerate button for query responses
-            addMessageWithRegenerate(data.answer, lastUserQuery);
-            updateSources(data.sources);
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // 未完成の行を保持
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) continue;
+
+                    try {
+                        const chunk = JSON.parse(jsonStr);
+                        
+                        if (chunk.type === 'sources') {
+                            updateSources(chunk.sources);
+                        } else if (chunk.type === 'token') {
+                            fullAnswer += chunk.token;
+                            updateStreamingMessage(streamMsg, fullAnswer);
+                        } else if (chunk.type === 'done') {
+                            finalizeStreamingMessage(streamMsg, chunk.answer || fullAnswer);
+                        } else if (chunk.type === 'complete') {
+                            // ドキュメントが見つからない場合
+                            updateSources(chunk.sources || []);
+                            finalizeStreamingMessage(streamMsg, chunk.answer);
+                        } else if (chunk.type === 'error') {
+                            throw new Error(chunk.message);
+                        }
+                    } catch (parseError) {
+                        if (parseError.message && !parseError.message.includes('JSON')) {
+                            throw parseError;
+                        }
+                    }
+                }
+            }
+
+            // ストリーム正常完了後、まだfinalizeされてない場合
+            if (fullAnswer && !streamMsg.querySelector('.restore-btn')) {
+                finalizeStreamingMessage(streamMsg, fullAnswer);
+            }
+
         } catch (error) {
             console.error('Fetch Error:', error);
-            if (thinkingMsg.parentNode) chatLog.removeChild(thinkingMsg);
+            
+            // ストリーミングメッセージを削除
+            if (streamMsg.parentNode) streamMsg.remove();
 
-            let errorMsg = "SYSTEM ERROR: ";
+            let errorMsg = "システムエラー: ";
             if (error.name === 'AbortError') {
                 errorMsg += "タイムアウトが発生しました。バックエンドの処理が遅延しています。";
             } else if (error.message.includes("Failed to fetch")) {
@@ -520,15 +684,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             addMessage(errorMsg, "system");
         } finally {
-            // UIのロック解除
+            isStreaming = false;
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceInputBtn.disabled = false;
+            imageBtn.disabled = false;
+            locationBtn.disabled = false;
             userInput.focus();
         }
     }
 
-    sendBtn.addEventListener('click', handleSend);
+    sendBtn.addEventListener('click', () => handleSend());
 
     userInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -537,13 +703,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 入力に合わせて高さを自動調整
     userInput.addEventListener('input', () => {
         userInput.style.height = '40px';
         userInput.style.height = (userInput.scrollHeight) + 'px';
     });
 
-    // 初期化メッセージ
+    // 初期メッセージ
     addMessage("システムを起動しました。ごみの分別や出し方について質問してください。", "system");
 
     // --- History Management ---
@@ -552,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentChatSession.length <= 1) return; 
 
         const sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
-        const sessionTitle = currentChatSession.find(m => m.role === 'user')?.text.slice(0, 30) || 'New Chat';
+        const sessionTitle = currentChatSession.find(m => m.role === 'user')?.text.slice(0, 30) || '新しいチャット';
         
         const sessionData = {
             id: activeSessionId || Date.now().toString(),
@@ -560,6 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
             timestamp: new Date().toLocaleString(),
             messages: currentChatSession
         };
+
+        if (!activeSessionId) activeSessionId = sessionData.id;
 
         const existingIndex = sessions.findIndex(s => s.id === sessionData.id);
         if (existingIndex > -1) {
@@ -571,7 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('chat_history', JSON.stringify(sessions));
     }
 
-    // セッション削除機能
     function deleteSession(sessionId) {
         if (!confirm('このセッションを削除しますか？')) return;
         
@@ -579,13 +745,11 @@ document.addEventListener('DOMContentLoaded', () => {
         sessions = sessions.filter(s => s.id !== sessionId);
         localStorage.setItem('chat_history', JSON.stringify(sessions));
         
-        // 現在表示中のセッションが削除された場合
         if (activeSessionId === sessionId) {
             activeSessionId = null;
             currentChatSession = [];
         }
         
-        // ダッシュボードを再描画
         renderHistoryDashboard(historySearchInput.value);
     }
 
@@ -616,18 +780,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="session-delete-btn" title="このセッションを削除">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
-                <div class="session-card-title">${session.title}</div>
+                <div class="session-card-title">${sanitize(session.title)}</div>
                 <div class="session-card-meta">
                     <span>${session.timestamp}</span>
-                    <span>${session.messages.length} messages</span>
+                    <span>${session.messages.length} メッセージ</span>
                 </div>
-                <div class="session-card-preview">${lastMsg}</div>
+                <div class="session-card-preview">${sanitize(lastMsg.slice(0, 100))}</div>
             `;
 
-            // 削除ボタンのイベント
             const deleteBtn = card.querySelector('.session-delete-btn');
             deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // カードのクリックイベントを防止
+                e.stopPropagation();
                 deleteSession(session.id);
             });
 
@@ -645,9 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHistoryDashboard();
     });
 
-    closeDashboardBtn.addEventListener('click', () => {
-        showSection('mainUI');
-    });
+    closeDashboardBtn.addEventListener('click', () => showSection('mainUI'));
 
     let viewingSession = null;
     function showHistoryDetail(session) {
@@ -659,25 +820,25 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = `msg ${msg.role}`;
             const label = msg.role === 'user' ? 'ユーザ' : 'GCA system';
             
-            let formattedContent = msg.text;
-            if (window.marked && msg.role !== 'user') {
-                formattedContent = marked.parse(msg.text);
+            let formattedContent;
+            if (msg.role !== 'user') {
+                formattedContent = renderMarkdown(msg.text);
             } else {
-                formattedContent = msg.text.replace(/\n/g, '<br>');
+                formattedContent = sanitize(msg.text.replace(/\n/g, '<br>'));
             }
 
             div.innerHTML = `
-                <div class="msg-info">${label} // ${new Date().toLocaleTimeString()}</div>
+                <div class="msg-info">${sanitize(label)} // ${msg.timestamp || ''}</div>
                 <div class="content">${formattedContent}</div>
             `;
             historyDetails.appendChild(div);
         });
 
-        historyUI.classList.remove('hidden');
+        showSection('historyUI');
     }
 
     closeHistoryBtn.addEventListener('click', () => {
-        historyUI.classList.add('hidden');
+        showSection('historyDashboard');
     });
 
     deleteSessionBtn.addEventListener('click', () => {
@@ -687,7 +848,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessions = sessions.filter(s => s.id !== viewingSession.id);
             localStorage.setItem('chat_history', JSON.stringify(sessions));
             
-            historyUI.classList.add('hidden');
+            showSection('historyDashboard');
             renderHistoryDashboard();
         }
     });
@@ -701,7 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSessionId = viewingSession.id;
             
             currentChatSession.forEach(msg => {
-                // Temporary disable speech for restoration
                 const oldTts = ttsEnabledSelect.value;
                 ttsEnabledSelect.value = 'false';
                 addMessage(msg.text, msg.role, true); 
@@ -712,5 +872,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- End History Management ---
+    // --- PWA Service Worker Registration ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => {
+            console.log('Service Worker registered');
+        }).catch(err => {
+            console.warn('SW registration failed:', err);
+        });
+    }
 });

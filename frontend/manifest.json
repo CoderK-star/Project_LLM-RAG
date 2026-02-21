@@ -1,0 +1,26 @@
+{
+  "name": "ごみ収集アシスタント",
+  "short_name": "ごみ収集AI",
+  "description": "AIでごみの分別や出し方をサポートするRAGアシスタント",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1b",
+  "theme_color": "#1a1a1b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "lang": "ja"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "gomi-collection-assistant",
+  "version": "1.1.0",
+  "description": "ごみ収集アシスタント - AIでごみの分別をサポート",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.0"
+  }
+}
