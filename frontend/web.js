@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const sourceList = document.getElementById('sourceList');
-    const newChatBtn = document.getElementById('newChat');
     const exportBtn = document.getElementById('exportData');
     
     const goHomeBtn = document.getElementById('goHome');
@@ -21,19 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const connectionStatus = document.getElementById('connectionStatus');
     const footerStatus = document.getElementById('footerStatus');
 
-    // History Dashboard UI elements
-    const historyDashboard = document.getElementById('historyDashboard');
-    const openHistoryDashboardBtn = document.getElementById('openHistoryDashboard');
-    const closeDashboardBtn = document.getElementById('closeDashboard');
-    const sessionGrid = document.getElementById('sessionGrid');
-    const emptyState = document.getElementById('emptyState');
-    const historySearchInput = document.getElementById('historySearch');
-    const deleteSessionBtn = document.getElementById('deleteSession');
-
-    const historyUI = document.getElementById('historyUI');
-    const historyDetails = document.getElementById('historyDetails');
-    const closeHistoryBtn = document.getElementById('closeHistory');
-    const resumeChatBtn = document.getElementById('resumeChat');
+    // History Sidebar UI elements
+    const historySidebar = document.getElementById('historySidebar');
+    const toggleHistorySidebarBtn = document.getElementById('toggleHistorySidebar');
+    const historySessionList = document.getElementById('historySessionList');
+    const historySidebarSearch = document.getElementById('historySidebarSearch');
+    const historySidebarNewChat = document.getElementById('historySidebarNewChat');
+    const historySidebarOverlay = document.getElementById('historySidebarOverlay');
 
     // --- State ---
     let currentChatSession = [];
@@ -90,9 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileSettings = document.getElementById('mobileSettings');
     const mobileTheme = document.getElementById('mobileTheme');
 
-    if (mobileHome) mobileHome.addEventListener('click', () => showSection('mainUI'));
-    if (mobileNewChat) mobileNewChat.addEventListener('click', () => newChatBtn.click());
-    if (mobileHistory) mobileHistory.addEventListener('click', () => openHistoryDashboardBtn.click());
+    if (mobileHome) mobileHome.addEventListener('click', () => { closeHistorySidebar(); showSection('mainUI'); });
+    if (mobileNewChat) mobileNewChat.addEventListener('click', () => {
+        if (chatLog.children.length === 0) return;
+        if (confirm('現在の対話を終了して、新規チャットを開始しますか？')) {
+            startNewChat();
+        }
+    });
+    if (mobileHistory) mobileHistory.addEventListener('click', () => toggleHistorySidebar());
     if (mobileSettings) mobileSettings.addEventListener('click', () => openSettingsBtn.click());
     if (mobileTheme) mobileTheme.addEventListener('click', toggleTheme);
 
@@ -245,8 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showSection(sectionId) {
         mainUI.classList.add('hidden');
         settingsUI.classList.add('hidden');
-        historyDashboard.classList.add('hidden');
-        historyUI.classList.add('hidden');
 
         const target = document.getElementById(sectionId);
         if (target) target.classList.remove('hidden');
@@ -264,17 +260,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- New Chat ---
-    newChatBtn.addEventListener('click', () => {
-        if (chatLog.children.length === 0) return;
-        if (confirm('現在の対話を終了して、新規チャットを開始しますか？')) {
-            saveSessionToHistory();
-            chatLog.innerHTML = '';
-            sourceList.innerHTML = '(クエリ待機中...)';
-            currentChatSession = [];
-            activeSessionId = null;
-            addMessage("新しいセッションを開始しました。ごみの分別や出し方について質問してください。", "system");
-        }
-    });
+    function startNewChat() {
+        saveSessionToHistory();
+        chatLog.innerHTML = '';
+        sourceList.innerHTML = '(クエリ待機中...)';
+        currentChatSession = [];
+        activeSessionId = null;
+        addMessage("新しいセッションを開始しました。ごみの分別や出し方について質問してください。", "system");
+        renderHistorySidebar();
+        showSection('mainUI');
+    }
+
+
 
     // --- Export ---
     exportBtn.addEventListener('click', () => {
@@ -818,14 +815,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初期メッセージ
     addMessage("システムを起動しました。ごみの分別や出し方について質問してください。", "system");
 
-    // --- History Management ---
+    // --- History Sidebar ---
+
+    function toggleHistorySidebar() {
+        const isExpanded = document.body.classList.toggle('sidebar-expanded');
+        if (isExpanded) {
+            renderHistorySidebar();
+        }
+    }
+
+    function closeHistorySidebar() {
+        document.body.classList.remove('sidebar-expanded');
+    }
+
+    if (toggleHistorySidebarBtn) {
+        toggleHistorySidebarBtn.addEventListener('click', toggleHistorySidebar);
+    }
+
+    if (historySidebarOverlay) {
+        historySidebarOverlay.addEventListener('click', closeHistorySidebar);
+    }
+
+    if (historySidebarNewChat) {
+        historySidebarNewChat.addEventListener('click', () => {
+            if (chatLog.children.length > 0) {
+                startNewChat();
+            }
+            if (window.innerWidth < 768) closeHistorySidebar();
+        });
+    }
+
+    if (historySidebarSearch) {
+        historySidebarSearch.addEventListener('input', (e) => {
+            renderHistorySidebar(e.target.value);
+        });
+    }
 
     function saveSessionToHistory() {
-        if (currentChatSession.length <= 1) return; 
+        if (currentChatSession.length <= 1) return;
 
         const sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
         const sessionTitle = currentChatSession.find(m => m.role === 'user')?.text.slice(0, 30) || '新しいチャット';
-        
+
         const sessionData = {
             id: activeSessionId || Date.now().toString(),
             title: sessionTitle,
@@ -843,141 +874,121 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         localStorage.setItem('chat_history', JSON.stringify(sessions));
+        renderHistorySidebar();
     }
 
     function deleteSession(sessionId) {
         if (!confirm('このセッションを削除しますか？')) return;
-        
+
         let sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
         sessions = sessions.filter(s => s.id !== sessionId);
         localStorage.setItem('chat_history', JSON.stringify(sessions));
-        
+
         if (activeSessionId === sessionId) {
             activeSessionId = null;
             currentChatSession = [];
+            chatLog.innerHTML = '';
+            sourceList.innerHTML = '(クエリ待機中...)';
+            addMessage("セッションが削除されました。新しい質問をどうぞ。", "system");
         }
-        
-        renderHistoryDashboard(historySearchInput.value);
+
+        renderHistorySidebar();
     }
 
-    function renderHistoryDashboard(filterTerm = '') {
+    function getDateLabel(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return '今日';
+        if (diffDays === 1) return '昨日';
+        if (diffDays <= 7) return '過去7日間';
+        if (diffDays <= 30) return '過去30日間';
+        return 'それ以前';
+    }
+
+    function renderHistorySidebar(filterTerm = '') {
         const sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
-        const filtered = sessions.filter(s => 
-            s.title.toLowerCase().includes(filterTerm.toLowerCase()) || 
+        const filtered = sessions.filter(s =>
+            !filterTerm ||
+            s.title.toLowerCase().includes(filterTerm.toLowerCase()) ||
             s.messages.some(m => m.text.toLowerCase().includes(filterTerm.toLowerCase()))
         );
 
         if (filtered.length === 0) {
-            sessionGrid.style.display = 'none';
-            emptyState.style.display = 'block';
+            historySessionList.innerHTML = '<div class="history-empty">会話履歴がありません</div>';
             return;
         }
 
-        emptyState.style.display = 'none';
-        sessionGrid.style.display = 'grid';
-        sessionGrid.innerHTML = '';
+        let html = '';
+        let lastGroup = '';
 
         filtered.forEach(session => {
-            const card = document.createElement('div');
-            card.className = 'session-card';
-            
-            const lastMsg = session.messages[session.messages.length - 1]?.text || '';
-            
-            card.innerHTML = `
-                <button class="session-delete-btn" title="このセッションを削除">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-                <div class="session-card-title">${sanitize(session.title)}</div>
-                <div class="session-card-meta">
-                    <span>${session.timestamp}</span>
-                    <span>${session.messages.length} メッセージ</span>
-                </div>
-                <div class="session-card-preview">${sanitize(lastMsg.slice(0, 100))}</div>
-            `;
-
-            const deleteBtn = card.querySelector('.session-delete-btn');
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteSession(session.id);
-            });
-
-            card.addEventListener('click', () => showHistoryDetail(session));
-            sessionGrid.appendChild(card);
-        });
-    }
-
-    historySearchInput.addEventListener('input', (e) => {
-        renderHistoryDashboard(e.target.value);
-    });
-
-    openHistoryDashboardBtn.addEventListener('click', () => {
-        showSection('historyDashboard');
-        renderHistoryDashboard();
-    });
-
-    closeDashboardBtn.addEventListener('click', () => showSection('mainUI'));
-
-    let viewingSession = null;
-    function showHistoryDetail(session) {
-        viewingSession = session;
-        historyDetails.innerHTML = '';
-        
-        session.messages.forEach(msg => {
-            const div = document.createElement('div');
-            div.className = `msg ${msg.role}`;
-            const label = msg.role === 'user' ? 'ユーザ' : 'GCA system';
-            
-            let formattedContent;
-            if (msg.role !== 'user') {
-                formattedContent = renderMarkdown(msg.text);
-            } else {
-                formattedContent = sanitize(msg.text.replace(/\n/g, '<br>'));
+            const group = getDateLabel(session.timestamp);
+            if (group !== lastGroup) {
+                html += `<div class="history-date-group">${group}</div>`;
+                lastGroup = group;
             }
 
-            div.innerHTML = `
-                <div class="msg-info">${sanitize(label)} // ${msg.timestamp || ''}</div>
-                <div class="content">${formattedContent}</div>
-            `;
-            historyDetails.appendChild(div);
+            const isActive = session.id === activeSessionId;
+            const msgCount = session.messages.length;
+
+            html += `
+                <div class="history-session-item${isActive ? ' active' : ''}" data-session-id="${session.id}">
+                    <div class="history-session-info">
+                        <div class="history-session-title">${sanitize(session.title)}</div>
+                        <div class="history-session-meta">${msgCount} メッセージ</div>
+                    </div>
+                    <button class="history-session-delete" data-session-id="${session.id}" title="削除">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>`;
         });
 
-        showSection('historyUI');
+        historySessionList.innerHTML = html;
+
+        historySessionList.querySelectorAll('.history-session-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.history-session-delete')) return;
+                const sessionId = item.dataset.sessionId;
+                loadSession(sessionId);
+            });
+        });
+
+        historySessionList.querySelectorAll('.history-session-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteSession(btn.dataset.sessionId);
+            });
+        });
     }
 
-    closeHistoryBtn.addEventListener('click', () => {
-        showSection('historyDashboard');
-    });
+    function loadSession(sessionId) {
+        const sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
+        const session = sessions.find(s => s.id === sessionId);
+        if (!session) return;
 
-    deleteSessionBtn.addEventListener('click', () => {
-        if (!viewingSession) return;
-        if (confirm('このセッションを完全に削除しますか？')) {
-            let sessions = JSON.parse(localStorage.getItem('chat_history') || '[]');
-            sessions = sessions.filter(s => s.id !== viewingSession.id);
-            localStorage.setItem('chat_history', JSON.stringify(sessions));
-            
-            showSection('historyDashboard');
-            renderHistoryDashboard();
-        }
-    });
+        saveSessionToHistory();
 
-    resumeChatBtn.addEventListener('click', () => {
-        if (!viewingSession) return;
-        
-        if (confirm('この会話を現在のチャットに復元しますか？')) {
-            chatLog.innerHTML = '';
-            currentChatSession = [...viewingSession.messages];
-            activeSessionId = viewingSession.id;
-            
-            currentChatSession.forEach(msg => {
-                const oldTts = ttsEnabledSelect.value;
-                ttsEnabledSelect.value = 'false';
-                addMessage(msg.text, msg.role, true); 
-                ttsEnabledSelect.value = oldTts;
-            });
+        chatLog.innerHTML = '';
+        currentChatSession = [...session.messages];
+        activeSessionId = session.id;
 
-            showSection('mainUI');
-        }
-    });
+        const oldTts = ttsEnabledSelect.value;
+        ttsEnabledSelect.value = 'false';
+        currentChatSession.forEach(msg => {
+            addMessage(msg.text, msg.role, true);
+        });
+        ttsEnabledSelect.value = oldTts;
+
+        showSection('mainUI');
+        renderHistorySidebar();
+
+        if (window.innerWidth < 768) closeHistorySidebar();
+    }
+
+    renderHistorySidebar();
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {
