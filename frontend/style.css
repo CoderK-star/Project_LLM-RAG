@@ -1380,33 +1380,36 @@ body.sidebar-expanded .version-label {
 
   .textarea-wrapper .icon-btn {
     position: absolute;
-    left: 4px;
-    bottom: 4px;
-    width: 30px; height: 30px;
+    left: 6px;
+    bottom: 6px;
+    width: 36px; height: 36px;
     z-index: 1;
   }
 
   .textarea-wrapper .icon-btn:nth-of-type(2) {
-    left: 34px;
+    left: 42px;
   }
 
   .textarea-wrapper .icon-btn svg {
-    width: 16px; height: 16px;
+    width: 20px; height: 20px;
   }
 
   .input-bar textarea {
-    padding-left: 68px;
-    padding-right: 52px;
+    padding-left: 82px;
+    padding-right: 58px;
+    height: 48px;
+    min-height: 48px;
+    font-size: 16px;
   }
 
   .textarea-wrapper #sendBtn {
     position: absolute;
-    right: 3px;
-    bottom: 3px;
-    height: 35px;
+    right: 4px;
+    bottom: 6px;
+    height: 36px;
     width: auto;
-    padding: 0 10px;
-    font-size: 0.72rem;
+    padding: 0 12px;
+    font-size: 0.78rem;
     z-index: 1;
   }
 
@@ -1460,30 +1463,32 @@ body.sidebar-expanded .version-label {
 
   /* 音声/画像ボタン */
   .input-bar .icon-btn {
-    width: 32px; height: 32px;
+    width: 40px; height: 32px;
   }
 
   .input-bar .icon-btn svg {
-    width: 16px; height: 16px;
+    width: 25px; height: 20px;
   }
 
   .textarea-wrapper .icon-btn {
-    width: 28px; height: 28px;
+    width: 32px; height: 32px;
   }
 
   .textarea-wrapper .icon-btn:nth-of-type(2) {
-    left: 32px;
+    left: 36px;
   }
 
   .input-bar textarea {
-    padding-left: 62px;
-    padding-right: 48px;
+    padding-left: 72px;
+    padding-right: 52px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .textarea-wrapper #sendBtn {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 0.68rem;
+    height: 32px;
+    padding: 0 10px;
+    font-size: 0.72rem;
   }
 
   .msg {
