@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const config = JSON.parse(localStorage.getItem('rag_config') || '{}');
-            const apiBase = config.address ? config.address.replace(/\/$/, "") : "";
+            const apiBase = getApiBase();
             
             // 会話履歴を送信（最新10件、システムメッセージを除いた軽量版）
             const history = currentChatSession.slice(-10).map(m => ({
