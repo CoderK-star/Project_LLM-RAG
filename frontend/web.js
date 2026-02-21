@@ -324,6 +324,113 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     });
 
+    // --- Settings Presets ---
+    const savePresetBtn = document.getElementById('savePreset');
+    const presetNameInput = document.getElementById('presetName');
+    const presetListEl = document.getElementById('presetList');
+
+    function getPresets() {
+        return JSON.parse(localStorage.getItem('rag_presets') || '[]');
+    }
+
+    function savePresets(presets) {
+        localStorage.setItem('rag_presets', JSON.stringify(presets));
+    }
+
+    function getCurrentSettingsSnapshot() {
+        return {
+            apiBase: document.getElementById('apiBaseUrl').value.trim(),
+            type: document.getElementById('modelType').value,
+            name: document.getElementById('modelNameInput').value.trim(),
+            address: document.getElementById('apiAddress').value.trim(),
+            temp: tempRange.value,
+            tts: ttsEnabledSelect.value
+        };
+    }
+
+    function applyPreset(preset) {
+        document.getElementById('apiBaseUrl').value = preset.apiBase || '';
+        document.getElementById('modelType').value = preset.type || 'ollama';
+        document.getElementById('modelNameInput').value = preset.name || '';
+        document.getElementById('apiAddress').value = preset.address || '';
+        tempRange.value = preset.temp || 0.0;
+        tempValue.textContent = tempRange.value;
+        if (preset.tts) ttsEnabledSelect.value = preset.tts;
+
+        // Trigger a save so it takes effect immediately
+        saveSettingsBtn.click();
+    }
+
+    function renderPresets() {
+        const presets = getPresets();
+        if (presets.length === 0) {
+            presetListEl.innerHTML = '<div class="preset-empty">保存されたプリセットはありません</div>';
+            return;
+        }
+        presetListEl.innerHTML = presets.map((p, i) => {
+            const modeLabel = p.type === 'openai' ? 'OpenAI' : 'Ollama';
+            return `
+            <div class="preset-card" data-index="${i}">
+                <div class="preset-card-info">
+                    <div class="preset-card-name">${sanitize(p.label)}</div>
+                    <div class="preset-card-detail">${modeLabel} / ${sanitize(p.name || '未設定')}</div>
+                </div>
+                <div class="preset-card-actions">
+                    <button class="preset-load-btn" data-index="${i}" title="このプリセットを適用">適用</button>
+                    <button class="preset-delete-btn" data-index="${i}" title="削除">&times;</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        presetListEl.querySelectorAll('.preset-load-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                const presets = getPresets();
+                if (presets[idx]) applyPreset(presets[idx]);
+            });
+        });
+
+        presetListEl.querySelectorAll('.preset-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(btn.dataset.index);
+                const presets = getPresets();
+                presets.splice(idx, 1);
+                savePresets(presets);
+                renderPresets();
+            });
+        });
+    }
+
+    savePresetBtn.addEventListener('click', () => {
+        const label = presetNameInput.value.trim();
+        if (!label) { alert('プリセット名を入力してください。'); return; }
+
+        const snapshot = getCurrentSettingsSnapshot();
+        snapshot.label = label;
+
+        const presets = getPresets();
+        const existing = presets.findIndex(p => p.label === label);
+        if (existing > -1) {
+            presets[existing] = snapshot;
+        } else {
+            presets.push(snapshot);
+        }
+        savePresets(presets);
+        presetNameInput.value = '';
+        renderPresets();
+
+        savePresetBtn.textContent = 'セーブしました';
+        savePresetBtn.style.background = '#22c55e';
+        setTimeout(() => {
+            savePresetBtn.textContent = '設定をセーブ';
+            savePresetBtn.style.background = '';
+        }, 2000);
+    });
+
+    renderPresets();
+
     // --- Load settings from backend /config + localStorage ---
     async function loadAndDisplaySettings() {
         const statusModelName = document.getElementById('statusModelName');
