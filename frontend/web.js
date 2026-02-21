@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentChatSession = [];
     let activeSessionId = null;
     let lastUserQuery = null;
-    let currentLocation = null;
     let currentImageBase64 = null;
     let isStreaming = false;
 
@@ -94,42 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mobileSettings) mobileSettings.addEventListener('click', () => openSettingsBtn.click());
     if (mobileTheme) mobileTheme.addEventListener('click', toggleTheme);
 
-    // --- Location Feature ---
-    const locationBtn = document.getElementById('locationBtn');
-    const locationModal = document.getElementById('locationModal');
-    const allowLocationBtn = document.getElementById('allowLocation');
-    const denyLocationBtn = document.getElementById('denyLocation');
-    
-    locationBtn.addEventListener('click', () => {
-        if (currentLocation) {
-            if (confirm("位置情報の使用を停止しますか？")) {
-                currentLocation = null;
-                locationBtn.classList.remove('active');
-            }
-        } else {
-            locationModal.classList.remove('hidden');
-        }
-    });
-
-    denyLocationBtn.addEventListener('click', () => locationModal.classList.add('hidden'));
-
-    allowLocationBtn.addEventListener('click', () => {
-        locationModal.classList.add('hidden');
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                currentLocation = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                };
-                locationBtn.classList.add('active');
-            }, (error) => {
-                alert("位置情報を取得できませんでした: " + error.message);
-            });
-        } else {
-            alert("このブラウザは位置情報をサポートしていません。");
-        }
-    });
-    
     // --- Image Feature ---
     const imageBtn = document.getElementById('imageBtn');
     const imageInput = document.getElementById('imageInput');
@@ -655,7 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         lastUserQuery = text;
         
-        const requestLocation = currentLocation;
         const requestImage = currentImageBase64;
 
         // UIロック
@@ -664,7 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
         sendBtn.disabled = true;
         voiceInputBtn.disabled = true;
         imageBtn.disabled = true;
-        locationBtn.disabled = true;
 
         // ユーザーメッセージ表示
         const displayContent = requestImage 
@@ -701,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     address: config.address,
                     temp: config.temp
                 },
-                location: requestLocation,
+                location: null,
                 image: requestImage,
                 history: history
             };
@@ -793,7 +754,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sendBtn.disabled = false;
             voiceInputBtn.disabled = false;
             imageBtn.disabled = false;
-            locationBtn.disabled = false;
             userInput.focus();
         }
     }
@@ -822,10 +782,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isExpanded) {
             renderHistorySidebar();
         }
+        // Reset any inline transform from drag
+        if (historySidebar) historySidebar.style.transform = '';
     }
 
     function closeHistorySidebar() {
         document.body.classList.remove('sidebar-expanded');
+        if (historySidebar) historySidebar.style.transform = '';
     }
 
     if (toggleHistorySidebarBtn) {
@@ -835,6 +798,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historySidebarOverlay) {
         historySidebarOverlay.addEventListener('click', closeHistorySidebar);
     }
+
+    // --- Mobile drag handle for history sidebar ---
+    (function initDragHandle() {
+        const dragHandle = document.getElementById('historyDragHandle');
+        if (!dragHandle || !historySidebar) return;
+
+        let startY = 0;
+        let currentTranslateY = 0;
+        let isDragging = false;
+        const DISMISS_THRESHOLD = 100; // px to swipe down to dismiss
+
+        function getY(e) {
+            return e.touches ? e.touches[0].clientY : e.clientY;
+        }
+
+        function onDragStart(e) {
+            if (window.innerWidth >= 768) return;
+            isDragging = true;
+            startY = getY(e);
+            currentTranslateY = 0;
+            historySidebar.style.transition = 'none';
+        }
+
+        function onDragMove(e) {
+            if (!isDragging) return;
+            const deltaY = getY(e) - startY;
+            // Only allow dragging downward (positive direction)
+            currentTranslateY = Math.max(0, deltaY);
+            historySidebar.style.transform = 'translateY(' + currentTranslateY + 'px)';
+        }
+
+        function onDragEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            historySidebar.style.transition = '';
+            if (currentTranslateY > DISMISS_THRESHOLD) {
+                closeHistorySidebar();
+            } else {
+                historySidebar.style.transform = '';
+            }
+            currentTranslateY = 0;
+        }
+
+        // Touch events
+        dragHandle.addEventListener('touchstart', onDragStart, { passive: true });
+        dragHandle.addEventListener('touchmove', onDragMove, { passive: false });
+        dragHandle.addEventListener('touchend', onDragEnd);
+        dragHandle.addEventListener('touchcancel', onDragEnd);
+
+        // Mouse events (for testing on desktop)
+        dragHandle.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+    })();
 
     if (historySidebarNewChat) {
         historySidebarNewChat.addEventListener('click', () => {

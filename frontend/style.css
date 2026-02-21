@@ -423,6 +423,13 @@ body.sidebar-expanded .sidebar-toggle-btn svg {
   background-color: var(--color-bg-light);
 }
 
+.textarea-wrapper {
+  flex-grow: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 .input-bar textarea {
   flex-grow: 1;
   background: var(--color-input-bg);
@@ -446,7 +453,8 @@ body.sidebar-expanded .sidebar-toggle-btn svg {
   color: var(--color-bg-light);
   border: none;
   height: 40px;
-  padding: 0 25px;
+  width: 60px;
+  padding: 0 5px;
   font-weight: 900;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -925,6 +933,31 @@ body.sidebar-expanded .history-sidebar {
   pointer-events: auto;
 }
 
+/* Drag handle (mobile bottom-sheet) */
+.history-drag-handle {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 4px;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.history-drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle-bar {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-text-sub);
+  opacity: 0.5;
+}
+
 .history-sidebar-header {
   padding: 16px 12px 12px;
   display: flex;
@@ -1269,14 +1302,25 @@ body.sidebar-expanded .version-label {
 
   .history-sidebar {
     left: 0;
-    width: 280px;
+    top: auto;
+    bottom: var(--mobile-nav-height);
+    width: 100%;
+    height: 70vh;
     z-index: 2500;
-    transform: translateX(-280px);
+    transform: translateY(100%);
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+    border-radius: 16px 16px 0 0;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.35s ease;
   }
 
   body.sidebar-expanded .history-sidebar {
-    transform: translateX(0);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    transform: translateY(0);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .history-drag-handle {
+    display: flex;
   }
 
   .history-sidebar-overlay {
@@ -1326,6 +1370,46 @@ body.sidebar-expanded .version-label {
     gap: 6px;
   }
 
+  .textarea-wrapper {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+  }
+
+  .textarea-wrapper .icon-btn {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    width: 30px; height: 30px;
+    z-index: 1;
+  }
+
+  .textarea-wrapper .icon-btn:nth-of-type(2) {
+    left: 34px;
+  }
+
+  .textarea-wrapper .icon-btn svg {
+    width: 16px; height: 16px;
+  }
+
+  .input-bar textarea {
+    padding-left: 68px;
+    padding-right: 52px;
+  }
+
+  .textarea-wrapper #sendBtn {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    height: 35px;
+    width: auto;
+    padding: 0 10px;
+    font-size: 0.72rem;
+    z-index: 1;
+  }
+
   .input-bar .icon-btn {
     width: 36px; height: 36px;
   }
@@ -1335,6 +1419,8 @@ body.sidebar-expanded .version-label {
     height: 36px;
     font-size: 0.8rem;
   }
+
+  /* Location button removed */
 
   .settings-content {
     margin-top: 20px;
@@ -1372,13 +1458,32 @@ body.sidebar-expanded .version-label {
     gap: 4px;
   }
 
-  /* モバイルでは音声/画像/位置情報ボタンをコンパクトに */
+  /* 音声/画像ボタン */
   .input-bar .icon-btn {
     width: 32px; height: 32px;
   }
 
   .input-bar .icon-btn svg {
     width: 16px; height: 16px;
+  }
+
+  .textarea-wrapper .icon-btn {
+    width: 28px; height: 28px;
+  }
+
+  .textarea-wrapper .icon-btn:nth-of-type(2) {
+    left: 32px;
+  }
+
+  .input-bar textarea {
+    padding-left: 62px;
+    padding-right: 48px;
+  }
+
+  .textarea-wrapper #sendBtn {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 0.68rem;
   }
 
   .msg {

@@ -53,6 +53,9 @@
 
   <!-- 会話履歴サイドバー -->
   <div class="history-sidebar" id="historySidebar">
+    <div class="history-drag-handle" id="historyDragHandle">
+      <div class="drag-handle-bar"></div>
+    </div>
     <div class="history-sidebar-header">
       <button class="history-new-chat-btn" id="historySidebarNewChat">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -157,36 +160,21 @@
         <div class="input-bar">
           <input type="file" id="imageInput" accept="image/*" style="display: none;">
           
-          <button id="voiceInputBtn" class="icon-btn" title="音声入力">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          </button>
-          
-          <button id="imageBtn" class="icon-btn" title="画像をアップロード">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-          </button>
-          
-          <button id="locationBtn" class="icon-btn" title="位置情報を使用">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          </button>
+          <div class="textarea-wrapper">
+            <button id="voiceInputBtn" class="icon-btn" title="音声入力">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            
+            <button id="imageBtn" class="icon-btn" title="画像をアップロード">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </button>
 
-          <textarea placeholder="メッセージを入力..." id="userInput" rows="1"></textarea>
-          <button id="sendBtn">送信</button>
+            <textarea placeholder="メッセージを入力..." id="userInput" rows="1" style="font-size: 15px;"></textarea>
+            <button id="sendBtn">送信</button>
+          </div>
         </div>
       </div>
       </div>
-    </div>
-
-    <!-- Location Modal -->
-    <div id="locationModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>位置情報の使用確認</h3>
-            <p>より正確な回答を提供するために、位置情報を使用しますか？</p>
-            <div id="mapPreview" style="height: 150px; width: 100%; margin: 10px 0; background: #ddd; display:none;"></div>
-            <div class="modal-actions">
-                <button id="denyLocation" class="btn-secondary">許可しない</button>
-                <button id="allowLocation" class="btn-primary">許可する</button>
-            </div>
-        </div>
     </div>
 
     <!-- フッター -->
