@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Marked.js Configuration ---
     if (window.marked) {
-        marked.setOptions({ breaks: true, gfm: true });
+        marked.setOptions({ breaks: false, gfm: true });
     }
 
     // --- Speech Recognition ---
@@ -484,10 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Message rendering ---
 
     function renderMarkdown(text) {
+        let cleaned = text.trim().replace(/\n{3,}/g, '\n\n');
         if (window.marked) {
-            return sanitize(marked.parse(text));
+            return sanitize(marked.parse(cleaned));
         }
-        return sanitize(text.replace(/\n/g, '<br>'));
+        return sanitize(cleaned.replace(/\n/g, '<br>'));
     }
 
     function addMessage(text, role, isRestoration = false) {

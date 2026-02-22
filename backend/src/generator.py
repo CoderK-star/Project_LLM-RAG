@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTempla
 from langchain_core.messages import SystemMessage, HumanMessage
 from .config import Config
 import os
+import re
 
 class RAGGenerator:
     def __init__(self, vectorstore=None, retriever=None):
@@ -14,7 +15,7 @@ class RAGGenerator:
         if retriever:
             self.retriever = retriever
         elif vectorstore:
-            self.retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+            self.retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
         else:
             raise ValueError("Either vectorstore or retriever must be provided.")
 
@@ -54,29 +55,51 @@ class RAGGenerator:
                 num_ctx=8192
             )
 
-    def _format_docs_with_metadata(self, docs):
-        """ドキュメントをメタデータ付きで整形する"""
+    @staticmethod
+    def _estimate_tokens(text):
+        """Rough token count: ~1.5 chars per token for Japanese, ~4 chars for ASCII."""
+        ja_chars = len(re.findall(r'[\u3000-\u9fff\uf900-\ufaff]', text))
+        ascii_chars = len(text) - ja_chars
+        return int(ja_chars / 1.5 + ascii_chars / 4)
+
+    def _format_docs_with_metadata(self, docs, max_context_tokens=None):
+        """ドキュメントをメタデータ付きで整形する。max_context_tokensを超えたら打ち切る。"""
+        if max_context_tokens is None:
+            max_context_tokens = 4000
         formatted_text = ""
+        current_tokens = 0
         for i, doc in enumerate(docs):
             source = os.path.basename(doc.metadata.get("source", "Unknown"))
             page = doc.metadata.get("page", "")
             page_info = f" (Page {page})" if page else ""
-            formatted_text += f"---\n[Source {i+1}: {source}{page_info}]\n{doc.page_content}\n"
+            block = f"---\n[Source {i+1}: {source}{page_info}]\n{doc.page_content}\n"
+            block_tokens = self._estimate_tokens(block)
+            if current_tokens + block_tokens > max_context_tokens and formatted_text:
+                break
+            formatted_text += block
+            current_tokens += block_tokens
         return formatted_text
 
     def _build_system_prompt(self):
-        """NotebookLMスタイルのシステムプロンプトを構築する"""
-        return """あなたは優秀なリサーチアシスタントです。GoogleのNotebookLMのように、提供された資料の内容を深く理解し、それらを統合して洞察に満ちた回答を作成することが求められています。
+        """システムプロンプトを構築する"""
+        return """あなたは自治体のごみ分別案内アシスタントです。提供された資料に基づいて、住民の質問に正確かつ簡潔に答えてください。
 
-以下のガイドラインに厳密に従ってください：
-1. **資料への完全な準拠**: 回答は提供された【資料】にある情報のみに基づいている必要があります。外部の知識を使ってはいけません。
-2. **統合と推論**: 単に事実を並べるだけでなく、複数の資料からの情報を関連付け、"なぜそうなるのか" という背景や理由を含めて説明してください。
-3. **明確な引用**: 情報を提示する際は、必ずその情報源を明記してください。例:「〜であることが報告されています (Source 1: report.pdf)」。
-4. **構造化**: 複雑なトピックは、見出しや箇条書きを使って論理的に構成してください。
-5. **回答不能な場合**: 資料に答えがない場合は、正直に「資料に記載がありません」と答えてください。推測で答えないでください。
-6. **会話の継続性**: 会話履歴が提供されている場合は、前の会話の内容を踏まえて回答してください。
+## ルール
+- 回答は提供された【資料】の情報のみに基づくこと。外部知識は使わない。
+- 資料に答えがない場合は「資料に記載がありません」と正直に答える。推測しない。
+- 複数の資料から関連情報がある場合は統合して説明する。
+- 引用元は文中に自然に埋め込む。例:「〜です (Source 1: file.pdf, Page 3)」
+- 会話履歴がある場合は前の文脈を踏まえて答える。
 
-あなたの目標は、ユーザーが資料全体の本質を理解できるようにサポートすることです。"""
+## 回答のフォーマット
+- 簡単な質問には1〜3文で簡潔に答える。長い前置きは不要。
+- 見出し（##）は複数のトピックを扱う場合のみ使用する。
+- 箇条書きは3項目以上の列挙がある場合のみ使う。
+- 段落間に余計な空行を入れない。
+- 「以下に説明します」「まとめると」などの冗長な導入文は省く。
+
+## トーン
+市役所の窓口で丁寧に説明するような自然な日本語で答えてください。堅すぎず、カジュアルすぎない口調を心がけてください。"""
 
     def _build_messages(self, query, context_text, chat_history=None, image_data=None):
         """プロンプトメッセージを構築する"""
@@ -95,16 +118,12 @@ class RAGGenerator:
                     from langchain_core.messages import AIMessage
                     messages.append(AIMessage(content=text))
 
-        human_text = f"""以下の【資料】を使用して、ユーザーの【質問】に詳しく答えてください。
-もし画像が提供されている場合は、その画像の内容も考慮して回答してください。
-
-【資料】
+        image_note = "画像も提供されています。内容を考慮して回答してください。\n\n" if image_data else ""
+        human_text = f"""{image_note}【資料】
 {context_text}
 
 【質問】
-{query}
-
-回答:"""
+{query}"""
 
         if image_data:
             content_blocks = [

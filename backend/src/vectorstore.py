@@ -71,12 +71,10 @@ class VectorStoreManager:
         else:
             vectorstore = self.create_vectorstore(chunks)
         
-        # NotebookLMスキーム: より多くのコンテキストを取得してLLM側でフィルタリング・統合させる
-        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
         
-        # キーワード検索（BM25）のリトリーバー
         bm25_retriever = BM25Retriever.from_documents(chunks)
-        bm25_retriever.k = 10
+        bm25_retriever.k = 6
         
         # アンサンブル（重み付け：ベクトル 0.6, BM25 0.4 - セマンティック検索を優先）
         ensemble_retriever = EnsembleRetriever(
