@@ -563,10 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
         `;
         
-        msgElement.appendChild(actionsDiv);
+        msgElement.parentNode.insertBefore(actionsDiv, msgElement.nextSibling);
         
         const restoreBtn = actionsDiv.querySelector('.restore-btn');
         restoreBtn.addEventListener('click', () => {
+            actionsDiv.remove();
             msgElement.remove();
             currentChatSession.pop(); // system msg
 
@@ -729,7 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // ストリーム正常完了後、まだfinalizeされてない場合
-            if (fullAnswer && !streamMsg.querySelector('.restore-btn')) {
+            if (fullAnswer && !streamMsg.nextElementSibling?.classList?.contains('response-actions')) {
                 finalizeStreamingMessage(streamMsg, fullAnswer);
             }
 

@@ -385,10 +385,10 @@ body.sidebar-expanded .sidebar-toggle-btn svg {
 }
 
 /* Markdown in messages */
-.msg .content p { margin: 0 0 10px 0; }
+.msg .content p { margin: 0 0 4px 0; }
 .msg .content p:last-child { margin-bottom: 0; }
-.msg .content ul, .msg .content ol { padding-left: 20px; margin: 10px 0; }
-.msg .content li { margin-bottom: 5px; }
+.msg .content ul, .msg .content ol { padding-left: 20px; margin: 4px 0; }
+.msg .content li { margin-bottom: 2px; }
 .msg .content code {
   font-family: var(--font-mono);
   background: rgba(0,0,0,0.1);
@@ -400,7 +400,8 @@ body.sidebar-expanded .sidebar-toggle-btn svg {
   padding: 12px; border-radius: 5px;
   overflow-x: auto; margin: 10px 0;
 }
-.msg .content strong { color: var(--color-accent); }
+.msg .content strong { color: #d32f2f; }
+[data-theme="dark"] .msg .content strong { color: #ef5350; }
 .msg strong { color: #3b82f6; }
 
 /* =============================================
@@ -1114,13 +1115,15 @@ body.sidebar-expanded .history-sidebar {
    Response Actions (Restore)
    ============================================= */
 .response-actions {
-  margin-top: 12px;
-  padding: 10px;
+  margin-top: 4px;
+  padding: 6px 10px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  align-self: flex-start;
+  max-width: 85%;
 }
 
 .short-response-warning {
