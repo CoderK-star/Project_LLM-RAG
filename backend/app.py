@@ -297,6 +297,44 @@ async def ingest_documents():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# --- PDF File Endpoints ---
+# NOTE: These must be registered BEFORE the catch-all StaticFiles mount below.
+
+@app.get("/files")
+async def list_files():
+    """data/rawディレクトリ内のPDFファイル一覧を返す"""
+    config = Config()
+    raw_dir = config.DATA_RAW_DIR
+    if not os.path.isdir(raw_dir):
+        return {"files": []}
+    files = [
+        f for f in sorted(os.listdir(raw_dir))
+        if f.lower().endswith(".pdf") and os.path.isfile(os.path.join(raw_dir, f))
+    ]
+    return {"files": files}
+
+@app.get("/files/{filename}")
+async def serve_file(filename: str):
+    """指定されたPDFファイルを返す（パストラバーサル防止付き）"""
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not safe_name.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are available")
+
+    config = Config()
+    file_path = os.path.join(config.DATA_RAW_DIR, safe_name)
+
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        file_path,
+        media_type="application/pdf",
+        filename=safe_name
+    )
+
+
 # --- Static File Serving ---
 # クラウドデプロイ時はフロントエンドを別ホスト(Cloudflare Pages等)で配信するため、
 # SERVE_FRONTEND=false でスキップ可能

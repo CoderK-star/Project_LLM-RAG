@@ -1294,6 +1294,128 @@ body.sidebar-expanded .version-label {
 .w-auto { width: auto; }
 
 /* =============================================
+   Source Dots Button (per-message)
+   ============================================= */
+.source-dots-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-sub);
+  width: 32px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  letter-spacing: 2px;
+  padding: 0;
+}
+
+.source-dots-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* =============================================
+   Source Popup
+   ============================================= */
+.source-popup {
+  position: fixed;
+  z-index: 3000;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 220px;
+  max-width: 360px;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: popupFadeIn 0.15s ease;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.source-popup-header {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 10px 14px 6px;
+  color: var(--color-text-sub);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+}
+
+.source-popup-list {
+  padding: 6px 0;
+}
+
+.source-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  font-size: 0.8rem;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.source-popup-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.source-popup-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.source-popup-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #3b82f6;
+}
+
+/* =============================================
+   Sidebar File Links
+   ============================================= */
+.source-file-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  font-size: 0.78rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.source-file-link:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.source-file-icon {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.source-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #3b82f6;
+}
+
+/* =============================================
    RESPONSIVE: Tablet (< 1024px)
    ============================================= */
 @media (max-width: 1024px) {

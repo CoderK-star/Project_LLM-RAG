@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentImageBase64 = null;
     let isStreaming = false;
 
+    // Per-message source storage: maps message DOM elements to their source arrays
+    const messageSourcesMap = new WeakMap();
+
     // --- Sanitization helper ---
     function sanitize(html) {
         if (window.DOMPurify) {
@@ -226,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function startNewChat() {
         saveSessionToHistory();
         chatLog.innerHTML = '';
-        sourceList.innerHTML = '(クエリ待機中...)';
+        loadFileList();
         currentChatSession = [];
         activeSessionId = null;
         addMessage("新しいセッションを開始しました。ごみの分別や出し方について質問してください。", "system");
@@ -480,6 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     checkHealth();
+    loadFileList();
 
     // --- Message rendering ---
 
@@ -548,13 +552,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const contentDiv = msgElement.querySelector('.content');
         contentDiv.innerHTML = renderMarkdown(fullText);
 
-        // 復元ボタンを追加
+        // 復元ボタンとソースボタンを追加
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'response-actions';
-        
+
         const isShort = fullText.length < 100;
+        const sources = messageSourcesMap.get(msgElement) || [];
+        const hasSources = sources.length > 0;
+
         actionsDiv.innerHTML = `
-            ${isShort ? '<span class="short-response-warning">⚠ 回答が短い可能性があります</span>' : ''}
+            ${hasSources ? '<button class="source-dots-btn" title="ソースを表示">&#x22EF;</button>' : ''}
+            ${isShort ? '<span class="short-response-warning">&#x26A0; 回答が短い可能性があります</span>' : ''}
             <button class="restore-btn">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
                     <path d="M9 14L4 9l5-5"/>
@@ -563,9 +571,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 元に戻す
             </button>
         `;
-        
+
         msgElement.parentNode.insertBefore(actionsDiv, msgElement.nextSibling);
-        
+
+        // Source dots button handler
+        const sourceDotsBtn = actionsDiv.querySelector('.source-dots-btn');
+        if (sourceDotsBtn) {
+            sourceDotsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSourcePopup(sourceDotsBtn, sources);
+            });
+        }
+
         const restoreBtn = actionsDiv.querySelector('.restore-btn');
         restoreBtn.addEventListener('click', () => {
             actionsDiv.remove();
@@ -592,23 +609,102 @@ document.addEventListener('DOMContentLoaded', () => {
         speakText(fullText);
     }
 
-    function updateSources(sources) {
-        if (!sources || sources.length === 0) {
-            sourceList.innerHTML = '<div class="source-empty">参照元なし</div>';
-            return;
+    // --- Source Popup & File List ---
+
+    function toggleSourcePopup(anchorBtn, sources) {
+        // Close any existing popup first
+        const existingPopup = document.querySelector('.source-popup');
+        if (existingPopup) {
+            if (existingPopup._anchorBtn === anchorBtn) {
+                existingPopup.remove();
+                return;
+            }
+            existingPopup.remove();
         }
-        sourceList.innerHTML = sources.map((s, i) => {
+
+        const apiBase = getApiBase();
+        const popup = document.createElement('div');
+        popup.className = 'source-popup';
+        popup._anchorBtn = anchorBtn;
+
+        let html = '<div class="source-popup-header">ソース一覧</div>';
+        html += '<div class="source-popup-list">';
+        sources.forEach((s, i) => {
             const filename = typeof s === 'string' ? s : s.filename;
-            const snippet = typeof s === 'object' && s.snippet ? s.snippet : '';
-            const page = typeof s === 'object' && s.page !== null && s.page !== undefined ? ` (p.${s.page + 1})` : '';
-            return `
-            <div class="source-card">
-                <div class="source-card-title">
-                    [${i+1}] ${sanitize(filename)}${page}
-                </div>
-                ${snippet ? `<div class="source-card-snippet">${sanitize(snippet)}</div>` : ''}
-            </div>
-        `}).join('');
+            const page = (typeof s === 'object' && s.page !== null && s.page !== undefined) ? s.page + 1 : null;
+            const pageFragment = page ? `#page=${page}` : '';
+            const pageLabel = page ? ` (p.${page})` : '';
+            const fileUrl = `${apiBase}/files/${encodeURIComponent(filename)}${pageFragment}`;
+            html += `
+                <a class="source-popup-item" href="${sanitize(fileUrl)}" target="_blank" rel="noopener noreferrer">
+                    <span class="source-popup-icon">&#x1F4C4;</span>
+                    <span class="source-popup-filename">[${i + 1}] ${sanitize(filename)}${pageLabel}</span>
+                </a>
+            `;
+        });
+        html += '</div>';
+        popup.innerHTML = html;
+
+        document.body.appendChild(popup);
+
+        const btnRect = anchorBtn.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+
+        let top = btnRect.top - popupRect.height - 8;
+        let left = btnRect.left + btnRect.width / 2 - popupRect.width / 2;
+
+        if (top < 8) {
+            top = btnRect.bottom + 8;
+        }
+        if (left < 8) left = 8;
+        if (left + popupRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - popupRect.width - 8;
+        }
+
+        popup.style.top = `${top}px`;
+        popup.style.left = `${left}px`;
+    }
+
+    // Close source popup on click outside
+    document.addEventListener('click', (e) => {
+        const popup = document.querySelector('.source-popup');
+        if (popup && !popup.contains(e.target) && !e.target.closest('.source-dots-btn')) {
+            popup.remove();
+        }
+    });
+
+    // Close source popup on chat scroll
+    chatLog.addEventListener('scroll', () => {
+        const popup = document.querySelector('.source-popup');
+        if (popup) popup.remove();
+    });
+
+    async function loadFileList() {
+        const apiBase = getApiBase();
+        try {
+            const response = await fetch(`${apiBase}/files`);
+            if (!response.ok) throw new Error('Failed to fetch files');
+            const data = await response.json();
+            const files = data.files || [];
+
+            if (files.length === 0) {
+                sourceList.innerHTML = '<div class="source-empty">PDFファイルなし</div>';
+                return;
+            }
+
+            sourceList.innerHTML = files.map(filename => {
+                const fileUrl = `${apiBase}/files/${encodeURIComponent(filename)}`;
+                return `
+                    <a class="source-file-link" href="${sanitize(fileUrl)}" target="_blank" rel="noopener noreferrer">
+                        <span class="source-file-icon">&#x1F4C4;</span>
+                        <span class="source-file-name">${sanitize(filename)}</span>
+                    </a>
+                `;
+            }).join('');
+        } catch (e) {
+            console.warn('Could not load file list:', e);
+            sourceList.innerHTML = '<div class="source-empty">ファイル一覧を取得できません</div>';
+        }
     }
 
     // --- Send / Streaming Handler ---
@@ -709,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const chunk = JSON.parse(jsonStr);
                         
                         if (chunk.type === 'sources') {
-                            updateSources(chunk.sources);
+                            messageSourcesMap.set(streamMsg, chunk.sources);
                         } else if (chunk.type === 'token') {
                             fullAnswer += chunk.token;
                             updateStreamingMessage(streamMsg, fullAnswer);
@@ -717,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             finalizeStreamingMessage(streamMsg, chunk.answer || fullAnswer);
                         } else if (chunk.type === 'complete') {
                             // ドキュメントが見つからない場合
-                            updateSources(chunk.sources || []);
+                            messageSourcesMap.set(streamMsg, chunk.sources || []);
                             finalizeStreamingMessage(streamMsg, chunk.answer);
                         } else if (chunk.type === 'error') {
                             throw new Error(chunk.message);
@@ -907,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSessionId = null;
             currentChatSession = [];
             chatLog.innerHTML = '';
-            sourceList.innerHTML = '(クエリ待機中...)';
+            loadFileList();
             addMessage("セッションが削除されました。新しい質問をどうぞ。", "system");
         }
 
