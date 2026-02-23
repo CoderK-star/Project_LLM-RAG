@@ -1244,8 +1244,8 @@ body.sidebar-expanded .history-sidebar {
 }
 .crosshair::before { width: 100%; height: 1px; top: 10px; left: 0; }
 .crosshair::after { height: 100%; width: 1px; left: 10px; top: 0; }
-.crosshair-tl { top: 10%; left: 10%; }
-.crosshair-tr { top: 10%; right: 10%; }
+.crosshair-tl { top: 6%; left: 10%; }
+.crosshair-tr { top: 6%; right: 10%; }
 .crosshair-bl { bottom: 10%; left: 10%; }
 .crosshair-br { bottom: 10%; right: 10%; }
 
