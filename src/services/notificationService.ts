@@ -10,16 +10,20 @@ import {
 } from './calendarEngine';
 import { formatDateISO } from '../utils/dateUtils';
 
+const isWeb = Platform.OS === 'web';
+
 // Configure how notifications appear when the app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (!isWeb) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 const CHANNEL_ID = 'garbage-collection';
 
@@ -35,6 +39,7 @@ export async function setupNotificationChannel(): Promise<void> {
 }
 
 export async function requestPermissions(): Promise<boolean> {
+  if (isWeb) return false;
   if (!Device.isDevice) {
     // Notifications don't work on simulator/emulator
     return false;
@@ -48,6 +53,7 @@ export async function requestPermissions(): Promise<boolean> {
 }
 
 export async function cancelAllScheduled(): Promise<void> {
+  if (isWeb) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -69,6 +75,8 @@ export async function scheduleNotifications(
   morningHour: number,
   daysAhead: number = 30
 ): Promise<number> {
+  if (isWeb) return 0;
+
   // Cancel existing
   await cancelAllScheduled();
 
@@ -140,6 +148,7 @@ export async function scheduleNotifications(
 }
 
 export async function getScheduledCount(): Promise<number> {
+  if (isWeb) return 0;
   const all = await Notifications.getAllScheduledNotificationsAsync();
   return all.length;
 }

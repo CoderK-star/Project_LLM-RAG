@@ -15,6 +15,18 @@
 /_expo/*
   Cache-Control: public, max-age=31536000, immutable
 
+/*.ttf
+  Content-Type: font/ttf
+  Access-Control-Allow-Origin: *
+
+/*.woff2
+  Content-Type: font/woff2
+  Access-Control-Allow-Origin: *
+
+/assets/*.ttf
+  Content-Type: font/ttf
+  Access-Control-Allow-Origin: *
+
 /manifest.json
   Cache-Control: public, max-age=86400
   Content-Type: application/manifest+json
