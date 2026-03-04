@@ -13,13 +13,16 @@
       "resizeMode": "contain",
       "backgroundColor": "#F8F9FC"
     },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.gomical.app",
-      "infoPlist": {
-        "CFBundleDisplayName": "ゴミカル",
-        "NSUserTrackingUsageDescription": "広告の最適化のために使用します"
-      }
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "ゴミカル",
+      "shortName": "ゴミカル",
+      "description": "お住まいの地域のごみ収集日・分別をかんたんに確認できるアプリ",
+      "lang": "ja",
+      "themeColor": "#7C9EF5",
+      "backgroundColor": "#F8F9FC"
     },
     "android": {
       "package": "com.gomical.app",
@@ -49,6 +52,7 @@
       "typedRoutes": true
     },
     "extra": {
+      "difyApiKey": "",
       "eas": {
         "projectId": ""
       }

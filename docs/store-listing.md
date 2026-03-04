@@ -1,4 +1,4 @@
-# App Store / Google Play ストアリスティング
+# Google Play ストアリスティング
 
 ## アプリ名
 ゴミカル - ごみの日カレンダー＆通知

@@ -1,0 +1,27 @@
+{
+  "name": "ゴミカル",
+  "short_name": "ゴミカル",
+  "description": "お住まいの地域のごみ収集日・分別をかんたんに確認できるアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#7C9EF5",
+  "background_color": "#F8F9FC",
+  "lang": "ja",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/images/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/adaptive-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"]
+}

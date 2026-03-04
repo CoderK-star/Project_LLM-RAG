@@ -1,16 +1,21 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ScreenContainer, SectionHeader } from '@/src/components/common';
 import { GarbageBadge, NextCollectionCard } from '@/src/components/garbage';
+import { RecordingCard } from '@/src/components/waste';
 import { MascotCharacter, useMascotState } from '@/src/components/mascot';
 import { useCalendar } from '@/src/hooks/useCalendar';
+import { useWasteRecords } from '@/src/hooks/useWasteRecords';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { spacing, fontSize, fontWeight, borderRadius, colors as tokenColors } from '@/src/theme/tokens';
 import { formatDateJa, getDaysUntilLabel, parseDate, getWeekDays, formatDateISO } from '@/src/utils/dateUtils';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { hasArea, area, municipality, getTodayCollections, getUpcomingCollections, getDateCollections } = useCalendar();
+  const { monthlyAggregation } = useWasteRecords();
   const collectionDeadline = municipality.collectionDeadline;
 
   const today = new Date();
@@ -69,6 +74,15 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Waste Recording Card */}
+        <RecordingCard
+          todayTypes={todayData?.garbageTypes ?? []}
+          monthlyAggregation={monthlyAggregation}
+          garbageTypes={municipality.garbageTypes}
+          onRecord={() => router.push('/record-waste')}
+          onViewStats={() => router.push('/waste-stats')}
+        />
+
         {/* 7-Day Strip */}
         <SectionHeader title="今週の予定" style={{ marginTop: spacing.xl }} />
         <View style={styles.weekStrip}>
@@ -109,7 +123,7 @@ export default function HomeScreen() {
             garbageType={nc.garbageType}
             dateLabel={formatDateJa(parseDate(nc.date))}
             daysUntilLabel={getDaysUntilLabel(nc.daysUntil)}
-            deadline={collectionDeadline}
+            deadline={nc.garbageType.deadline ?? collectionDeadline}
           />
         ))}
       </ScrollView>

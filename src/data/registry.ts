@@ -11,13 +11,32 @@ export interface PrefectureGroup {
   municipalities: MunicipalityEntry[];
 }
 
+// 自治体の定義　各自治体のJSONファイルを遅延ロードするための関数を格納。
 const dataModules: Record<string, () => Municipality> = {
-  nagareyama: () => require('./nagareyama.json') as Municipality,
+  'edogawa': () => require('./edogawa.json') as Municipality,
+  'fujiyoshida': () => require('./fujiyoshida.json') as Municipality,
+  'hamamatsu': () => require('./hamamatsu.json') as Municipality,
+  'ibaraki-town': () => require('./ibaraki-town.json') as Municipality,
+  'iga': () => require('./iga.json') as Municipality,
+  'itabashi': () => require('./itabashi.json') as Municipality,
+  'kanazawa': () => require('./kanazawa.json') as Municipality,
+  'kashiwa': () => require('./kashiwa.json') as Municipality,
+  'misato': () => require('./misato.json') as Municipality,
+  'muroran': () => require('./muroran.json') as Municipality,
+  'nagareyama': () => require('./nagareyama.json') as Municipality,
+  'saga': () => require('./saga.json') as Municipality,
+  'sapporo': () => require('./sapporo.json') as Municipality,
+  'sasayama': () => require('./sasayama.json') as Municipality,
+  'setagaya': () => require('./setagaya.json') as Municipality,
+  'tachikawa': () => require('./tachikawa.json') as Municipality,
+  'tomigusuku': () => require('./tomigusuku.json') as Municipality,
+  'toyama': () => require('./toyama.json') as Municipality,
+  'yokosuka': () => require('./yokosuka.json') as Municipality,
 };
 
 export function getMunicipalityList(): MunicipalityEntry[] {
-  return Object.values(dataModules).map((loader) => {
-    const m = loader();
+  return Object.keys(dataModules).map((key) => {
+    const m = dataModules[key]();
     return { id: m.municipalityId, name: m.municipalityName, prefecture: m.prefecture };
   });
 }

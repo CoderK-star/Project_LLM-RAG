@@ -8,8 +8,9 @@ import 'react-native-reanimated';
 
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { useSettingsStore } from '@/src/store/settingsStore';
+import { useWasteStore } from '@/src/store/wasteStore';
 import { useNotifications } from '@/src/hooks/useNotifications';
-import { initLocale } from '@/src/i18n';
+import { initLocale, t } from '@/src/i18n';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -20,7 +21,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const { isLoaded, onboardingComplete } = useSettingsStore();
@@ -47,6 +48,21 @@ function RootLayoutNav() {
           name="onboarding"
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="record-waste"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="waste-stats"
+          options={{
+            title: t('waste.statsTitle'),
+            headerStyle: { backgroundColor: colors.surface },
+            headerTintColor: colors.text,
+          }}
+        />
       </Stack>
     </NavThemeProvider>
   );
@@ -58,9 +74,11 @@ export default function RootLayout() {
   });
 
   const { isLoaded: settingsLoaded, load: loadSettings, theme, language } = useSettingsStore();
+  const loadWaste = useWasteStore((s) => s.load);
 
   useEffect(() => {
     loadSettings();
+    loadWaste();
   }, []);
 
   useEffect(() => {

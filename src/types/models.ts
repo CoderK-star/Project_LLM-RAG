@@ -10,6 +10,7 @@ export interface GarbageType {
   color: string;
   icon: string;
   description?: string;
+  deadline?: string;          // 収集時間締切 e.g. "朝8:00", "朝8:30"
   rules: string[];
 }
 

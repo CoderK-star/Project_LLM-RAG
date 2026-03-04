@@ -55,7 +55,7 @@ export default function SearchScreen() {
       {query.length > 0 ? (
         <FlatList
           data={results}
-          keyExtractor={(item) => item.keyword}
+          keyExtractor={(item, index) => `${item.keyword}-${index}`}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.noResults}>
@@ -99,7 +99,17 @@ export default function SearchScreen() {
   );
 }
 
+const MATCH_LABELS: Record<string, string> = {
+  local: '',
+  exact: '',
+  alias: '',
+  description: '説明文から推定',
+  fuzzy: '類似キーワード',
+};
+
 function SearchResultRow({ item, colors }: { item: SearchResult; colors: any }) {
+  const matchLabel = MATCH_LABELS[item.matchType];
+
   return (
     <View style={[styles.resultRow, { backgroundColor: colors.surface }]}>
       <View style={[styles.resultDot, { backgroundColor: item.garbageType.color }]} />
@@ -108,6 +118,11 @@ function SearchResultRow({ item, colors }: { item: SearchResult; colors: any }) 
         <Text style={[styles.resultType, { color: item.garbageType.color }]}>
           {item.garbageType.name}
         </Text>
+        {matchLabel ? (
+          <Text style={[styles.matchHint, { color: colors.textTertiary }]}>
+            {matchLabel}
+          </Text>
+        ) : null}
         {item.notes && (
           <Text style={[styles.resultNotes, { color: colors.textTertiary }]}>
             {item.notes}
@@ -167,6 +182,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
     marginTop: 2,
+  },
+  matchHint: {
+    fontSize: fontSize.xs,
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   resultNotes: {
     fontSize: fontSize.xs,

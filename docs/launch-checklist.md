@@ -1,42 +1,39 @@
-# Gomical Launch Checklist
+# Gomical Launch Checklist (Android / Google Play)
 
 ## Pre-Launch (1週間前)
 
 - [ ] アプリ名「ゴミカル」の商標検索（J-PlatPat: https://www.j-platpat.inpit.go.jp/）
 - [ ] プライバシーポリシーをWebページとして公開（GitHub Pages / Notion等）
 - [ ] 利用規約をWebページとして公開
-- [ ] Google Play Developer登録（$25）
-- [ ] Apple Developer Program登録（$99/年）
+- [ ] Google Play Developer登録（$25 一回のみ）
+- [ ] Google Play Consoleでアプリを作成
+- [ ] Google Cloud Consoleでサービスアカウント作成 → JSONキーをダウンロード → `google-services.json` としてプロジェクトルートに配置
 - [ ] EAS Projectにリンク: `eas init`
-- [ ] app.jsonのextra.eas.projectIdを設定
-- [ ] 実機でフル動作確認（Android + iOS）
+- [ ] app.jsonの `extra.eas.projectId` を設定
+- [ ] 実機でフル動作確認（Android）
 
 ## Build & Submit
 
-### Android
 ```bash
+# 本番用ビルド
 eas build --platform android --profile production
+
+# Google Playへ提出
 eas submit --platform android --profile production
 ```
 
-### iOS
-```bash
-eas build --platform ios --profile production
-eas submit --platform ios --profile production
-```
+## Store Listing (Google Play Console)
 
-## Store Listing
-
-- [ ] アプリアイコン（1024x1024）をアップロード
-- [ ] スクリーンショット（各解像度）を用意・アップロード
-  - iPhone 6.7" (1290x2796)
-  - iPhone 6.1" (1179x2556)
-  - Android phone (1080x1920+)
-- [ ] フィーチャーグラフィック（Google Play: 1024x500）
-- [ ] ストア説明文を設定（docs/store-listing.md参照）
+- [ ] アプリアイコン（512x512）をアップロード
+- [ ] フィーチャーグラフィック（1024x500）をアップロード
+- [ ] スクリーンショット（1080x1920以上）を最低2枚アップロード
+- [ ] ストア説明文を設定（docs/store-listing.md 参照）
 - [ ] カテゴリ: ライフスタイル / ユーティリティ
-- [ ] 対象年齢: 13歳以上
-- [ ] Data Safety / App Privacy Labels を申告
+- [ ] コンテンツレーティング質問票を回答（対象年齢: 13歳以上）
+- [ ] Data Safety セクションを申告
+- [ ] プライバシーポリシーURLを設定
+- [ ] 連絡先メールアドレスを設定
+- [ ] 国/地域の配信範囲を設定
 
 ## Post-Launch マーケティング
 
@@ -54,7 +51,7 @@ eas submit --platform ios --profile production
 
 ### Month 2+: 継続
 - [ ] ユーザリクエストに基づき自治体データ追加
-- [ ] App Store / Google Playのレビュー返信
+- [ ] Google Playのレビュー返信
 - [ ] SNS定期投稿の継続（週2-3回）
 - [ ] 外国人コミュニティ（Facebook等）で告知
 

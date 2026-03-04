@@ -32,6 +32,9 @@ ios/
 .DS_Store
 Thumbs.db
 
+# 5374.jp raw cache
+.5374-cache/
+
 # Build
 *.tsbuildinfo
 
@@ -41,6 +44,9 @@ GoogleService-Info.plist
 
 # Temp
 tmpclaude-*
+
+# Knowledge base (generated for Dify upload)
+knowledge-base/
 
 # Lock file (regenerated on install)
 package-lock.json

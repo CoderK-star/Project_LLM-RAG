@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { colors } from '@/src/theme/tokens';
 import { useTheme } from '@/src/theme/ThemeContext';
+import { t } from '@/src/i18n';
 
 export default function TabLayout() {
   const { isDark, colors: themeColors } = useTheme();
@@ -47,6 +48,15 @@ export default function TabLayout() {
           title: '分別検索',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="search-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: t('tabs.chat'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
           ),
         }}
       />
