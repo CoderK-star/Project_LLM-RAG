@@ -1,3 +1,3 @@
 # Cloudflare Pages redirects
-# Static assets are served automatically by Cloudflare Pages.
-# SPA fallback is handled by 404.html (copied from index.html at build time).
+# SPA fallback — all routes serve index.html
+/*  /index.html  200

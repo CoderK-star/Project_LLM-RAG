@@ -10,10 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../theme/ThemeContext';
-
-// Haptics is not supported on web
-const Haptics = Platform.OS !== 'web' ? require('expo-haptics') : null;
 import { spacing, fontSize, fontWeight, borderRadius, colors as tokenColors } from '../../theme/tokens';
 import { useCalendar } from '../../hooks/useCalendar';
 import { useWasteRecords } from '../../hooks/useWasteRecords';
@@ -65,7 +63,7 @@ export function RecordingModal({ onDismiss }: RecordingModalProps) {
   async function handleSave() {
     if (!canSave || saving) return;
     setSaving(true);
-    Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     await addRecord({
       date: todayISO,
@@ -81,13 +79,13 @@ export function RecordingModal({ onDismiss }: RecordingModalProps) {
   }
 
   function incrementAmount() {
-    Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAmount((a) => a + 1);
   }
 
   function decrementAmount() {
     if (amount <= 1) return;
-    Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAmount((a) => a - 1);
   }
 
